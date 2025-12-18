@@ -1,107 +1,72 @@
-def gen_shepp_logan(num_rows, num_cols, modified=True):
+import numpy as np
+
+def _gen_ellipsoid(x_grid, y_grid, z_grid, x0, y0, z0, a, b, c, gray_level, alpha=0, beta=0, gamma=0):
     """
-    Generate a Shepp Logan phantom
-    
+    Returns an image with a 3D ellipsoid in a 3D plane with a center of [x0,y0,z0] and ...
+
     Args:
-        num_rows: int, number of rows.
-        num_cols: int, number of cols.
-        modified: bool, if True use modified (visible) values, if False use original values
-    
+        x_grid(float): 3D grid of X coordinate values.
+        y_grid(float): 3D grid of Y coordinate values.
+        z_grid(float): 3D grid of Z coordinate values.
+        x0(float): horizontal center of ellipsoid.
+        y0(float): vertical center of ellipsoid.
+        z0(float): normal center of ellipsoid.
+        a(float): X-axis radius.
+        b(float): Y-axis radius.
+        c(float): Z-axis radius.
+        gray_level(float): Gray level for the ellipse.
+        alpha(float): [Default=0.0] counter-clockwise angle of rotation by X-axis in radians.
+        beta(float): [Default=0.0] counter-clockwise angle of rotation by Y-axis in radians.
+        gamma(float): [Default=0.0] counter-clockwise angle of rotation by Z-axis in radians.
+
     Return:
-        out_image: 2D array, num_rows*num_cols
+        ndarray: 3D array with the same shape as x_grid, y_grid, and z_grid
+
     """
-    
-    if modified:
-        # MODIFIED SHEPP-LOGAN VALUES (commonly used - much better visibility!)
-        sl_paras = [
-            {'x0': 0.0, 'y0': 0.0, 'a': 0.69, 'b': 0.92, 'theta': 0, 'gray_level': 1.0},
-            {'x0': 0.0, 'y0': -0.0184, 'a': 0.6624, 'b': 0.874, 'theta': 0, 'gray_level': -0.8},
-            {'x0': 0.22, 'y0': 0.0, 'a': 0.11, 'b': 0.31, 'theta': -18, 'gray_level': -0.2},
-            {'x0': -0.22, 'y0': 0.0, 'a': 0.16, 'b': 0.41, 'theta': 18, 'gray_level': -0.2},
-            {'x0': 0.0, 'y0': 0.35, 'a': 0.21, 'b': 0.25, 'theta': 0, 'gray_level': 0.1},
-            {'x0': 0.0, 'y0': 0.1, 'a': 0.046, 'b': 0.046, 'theta': 0, 'gray_level': 0.1},
-            {'x0': 0.0, 'y0': -0.1, 'a': 0.046, 'b': 0.046, 'theta': 0, 'gray_level': 0.1},
-            {'x0': -0.08, 'y0': -0.605, 'a': 0.046, 'b': 0.023, 'theta': 0, 'gray_level': 0.1},
-            {'x0': 0.0, 'y0': -0.605, 'a': 0.023, 'b': 0.023, 'theta': 0, 'gray_level': 0.1},
-            {'x0': 0.06, 'y0': -0.605, 'a': 0.023, 'b': 0.046, 'theta': 0, 'gray_level': 0.1}
-        ]
-    else:
-        # ORIGINAL SHEPP-LOGAN VALUES (poor visibility)
-        sl_paras = [
-            {'x0': 0.0, 'y0': 0.0, 'a': 0.69, 'b': 0.92, 'theta': 0, 'gray_level': 2.0},
-            {'x0': 0.0, 'y0': -0.0184, 'a': 0.6624, 'b': 0.874, 'theta': 0, 'gray_level': -0.98},
-            {'x0': 0.22, 'y0': 0.0, 'a': 0.11, 'b': 0.31, 'theta': -18, 'gray_level': -0.02},
-            {'x0': -0.22, 'y0': 0.0, 'a': 0.16, 'b': 0.41, 'theta': 18, 'gray_level': -0.02},
-            {'x0': 0.0, 'y0': 0.35, 'a': 0.21, 'b': 0.25, 'theta': 0, 'gray_level': 0.01},
-            {'x0': 0.0, 'y0': 0.1, 'a': 0.046, 'b': 0.046, 'theta': 0, 'gray_level': 0.01},
-            {'x0': 0.0, 'y0': -0.1, 'a': 0.046, 'b': 0.046, 'theta': 0, 'gray_level': 0.01},
-            {'x0': -0.08, 'y0': -0.605, 'a': 0.046, 'b': 0.023, 'theta': 0, 'gray_level': 0.01},
-            {'x0': 0.0, 'y0': -0.605, 'a': 0.023, 'b': 0.023, 'theta': 0, 'gray_level': 0.01},
-            {'x0': 0.06, 'y0': -0.605, 'a': 0.023, 'b': 0.046, 'theta': 0, 'gray_level': 0.01}
-        ]
+    # Generate Rotation Matrix.
+    rx = np.array([[1, 0, 0], [0, np.cos(-alpha), -np.sin(-alpha)], [0, np.sin(-alpha), np.cos(-alpha)]])
+    ry = np.array([[np.cos(-beta), 0, np.sin(-beta)], [0, 1, 0], [-np.sin(-beta), 0, np.cos(-beta)]])
+    rz = np.array([[np.cos(-gamma), -np.sin(-gamma), 0], [np.sin(-gamma), np.cos(-gamma), 0], [0, 0, 1]])
+    r = np.dot(rx, np.dot(ry, rz))
 
-    axis_x = np.linspace(-1.0, 1.0, num_cols)
-    axis_y = np.linspace(1.0, -1.0, num_rows)
+    cor = np.array([x_grid.flatten() - x0, y_grid.flatten() - y0, z_grid.flatten() - z0])
 
-    x_grid, y_grid = np.meshgrid(axis_x, axis_y)
-    image = x_grid * 0.0
+    image = ((np.dot(r[0], cor)) ** 2 / a ** 2 + (np.dot(r[1], cor)) ** 2 / b ** 2 + (
+        np.dot(r[2], cor)) ** 2 / c ** 2 <= 1.0) * gray_level
 
-    for el_paras in sl_paras:
-        image += _gen_ellipse(x_grid=x_grid, y_grid=y_grid, x0=el_paras['x0'], y0=el_paras['y0'],
-                             a=el_paras['a'], b=el_paras['b'], theta=el_paras['theta'] / 180.0 * np.pi,
-                             gray_level=el_paras['gray_level'])
-
-    return image
+    return image.reshape(x_grid.shape)
 
 
-def gen_shepp_logan_3d_raw(num_rows, num_cols, num_slices, scale=1.0, offset_x=0.0, offset_y=0.0, offset_z=0.0, modified=True):
+def gen_shepp_logan_3d_raw(num_rows, num_cols, num_slices, scale=1.0, offset_x=0.0, offset_y=0.0, offset_z=0.0):
     """
-    Generate a 3D Shepp Logan phantom based on below reference.
-    
-    Kak AC, Slaney M. Principles of computerized tomographic imaging. Page.102. IEEE Press, New York, 1988.
-    
+    Generate a 3D Shepp Logan phantom with MODIFIED VALUES (good visibility)
+
     Args:
         num_rows: int, number of rows.
         num_cols: int, number of cols.
         num_slices: int, number of slices.
-        scale: (scalar, optional), scaling factor of phantom within the image. from 0 to 1
-        offset_x: scalar, proportion of x-axis that is added to x-coordinate of phantom within image
-        offset_y: scalar, proportion of y-axis that is added to y-coordinate of phantom within image
-        offset_z: scalar, proportion of z-axis that is added to z-coordinate of phantom within image
-        modified: bool, if True use modified (visible) values
-    
+        scale: scaling factor of phantom within the image.
+        offset_x: proportion of x-axis offset
+        offset_y: proportion of y-axis offset
+        offset_z: proportion of z-axis offset
+
     Return:
         out_image: 3D array, num_slices*num_rows*num_cols
     """
     
-    if modified:
-        # MODIFIED 3D SHEPP-LOGAN VALUES (better visibility!)
-        sl3d_paras = [
-            {'x0': 0.0, 'y0': 0.0, 'z0': 0.0, 'a': 0.69, 'b': 0.92, 'c': 0.9, 'gamma': 0, 'gray_level': 1.0},
-            {'x0': 0.0, 'y0': 0.0, 'z0': 0.0, 'a': 0.6624, 'b': 0.874, 'c': 0.88, 'gamma': 0, 'gray_level': -0.8},
-            {'x0': -0.22, 'y0': 0.0, 'z0': -0.25, 'a': 0.41, 'b': 0.16, 'c': 0.21, 'gamma': 108, 'gray_level': -0.2},
-            {'x0': 0.22, 'y0': 0.0, 'z0': -0.25, 'a': 0.31, 'b': 0.11, 'c': 0.22, 'gamma': 72, 'gray_level': -0.2},
-            {'x0': 0.0, 'y0': 0.35, 'z0': -0.25, 'a': 0.21, 'b': 0.25, 'c': 0.5, 'gamma': 0, 'gray_level': 0.1},
-            {'x0': 0.0, 'y0': 0.1, 'z0': -0.25, 'a': 0.046, 'b': 0.046, 'c': 0.046, 'gamma': 0, 'gray_level': 0.1},
-            {'x0': -0.08, 'y0': -0.65, 'z0': -0.25, 'a': 0.046, 'b': 0.023, 'c': 0.02, 'gamma': 0, 'gray_level': 0.1},
-            {'x0': 0.06, 'y0': -0.65, 'z0': -0.25, 'a': 0.046, 'b': 0.023, 'c': 0.02, 'gamma': 90, 'gray_level': 0.1},
-            {'x0': 0.06, 'y0': -0.105, 'z0': 0.625, 'a': 0.056, 'b': 0.04, 'c': 0.1, 'gamma': 90, 'gray_level': 0.1},
-            {'x0': 0.0, 'y0': 0.1, 'z0': 0.625, 'a': 0.056, 'b': 0.056, 'c': 0.1, 'gamma': 0, 'gray_level': -0.2}
-        ]
-    else:
-        # ORIGINAL 3D SHEPP-LOGAN VALUES
-        sl3d_paras = [
-            {'x0': 0.0, 'y0': 0.0, 'z0': 0.0, 'a': 0.69, 'b': 0.92, 'c': 0.9, 'gamma': 0, 'gray_level': 2.0},
-            {'x0': 0.0, 'y0': 0.0, 'z0': 0.0, 'a': 0.6624, 'b': 0.874, 'c': 0.88, 'gamma': 0, 'gray_level': -0.98},
-            {'x0': -0.22, 'y0': 0.0, 'z0': -0.25, 'a': 0.41, 'b': 0.16, 'c': 0.21, 'gamma': 108, 'gray_level': -0.02},
-            {'x0': 0.22, 'y0': 0.0, 'z0': -0.25, 'a': 0.31, 'b': 0.11, 'c': 0.22, 'gamma': 72, 'gray_level': -0.02},
-            {'x0': 0.0, 'y0': 0.35, 'z0': -0.25, 'a': 0.21, 'b': 0.25, 'c': 0.5, 'gamma': 0, 'gray_level': 0.02},
-            {'x0': 0.0, 'y0': 0.1, 'z0': -0.25, 'a': 0.046, 'b': 0.046, 'c': 0.046, 'gamma': 0, 'gray_level': 0.02},
-            {'x0': -0.08, 'y0': -0.65, 'z0': -0.25, 'a': 0.046, 'b': 0.023, 'c': 0.02, 'gamma': 0, 'gray_level': 0.01},
-            {'x0': 0.06, 'y0': -0.65, 'z0': -0.25, 'a': 0.046, 'b': 0.023, 'c': 0.02, 'gamma': 90, 'gray_level': 0.01},
-            {'x0': 0.06, 'y0': -0.105, 'z0': 0.625, 'a': 0.056, 'b': 0.04, 'c': 0.1, 'gamma': 90, 'gray_level': 0.02},
-            {'x0': 0.0, 'y0': 0.1, 'z0': 0.625, 'a': 0.056, 'b': 0.056, 'c': 0.1, 'gamma': 0, 'gray_level': -0.02}
-        ]
+    # MODIFIED 3D SHEPP-LOGAN VALUES (good visibility!)
+    sl3d_paras = [
+        {'x0': 0.0, 'y0': 0.0, 'z0': 0.0, 'a': 0.69, 'b': 0.92, 'c': 0.9, 'gamma': 0, 'gray_level': 1.0},
+        {'x0': 0.0, 'y0': 0.0, 'z0': 0.0, 'a': 0.6624, 'b': 0.874, 'c': 0.88, 'gamma': 0, 'gray_level': -0.8},
+        {'x0': -0.22, 'y0': 0.0, 'z0': -0.25, 'a': 0.41, 'b': 0.16, 'c': 0.21, 'gamma': 108, 'gray_level': -0.2},
+        {'x0': 0.22, 'y0': 0.0, 'z0': -0.25, 'a': 0.31, 'b': 0.11, 'c': 0.22, 'gamma': 72, 'gray_level': -0.2},
+        {'x0': 0.0, 'y0': 0.35, 'z0': -0.25, 'a': 0.21, 'b': 0.25, 'c': 0.5, 'gamma': 0, 'gray_level': 0.1},
+        {'x0': 0.0, 'y0': 0.1, 'z0': -0.25, 'a': 0.046, 'b': 0.046, 'c': 0.046, 'gamma': 0, 'gray_level': 0.1},
+        {'x0': -0.08, 'y0': -0.65, 'z0': -0.25, 'a': 0.046, 'b': 0.023, 'c': 0.02, 'gamma': 0, 'gray_level': 0.1},
+        {'x0': 0.06, 'y0': -0.65, 'z0': -0.25, 'a': 0.046, 'b': 0.023, 'c': 0.02, 'gamma': 90, 'gray_level': 0.1},
+        {'x0': 0.06, 'y0': -0.105, 'z0': 0.625, 'a': 0.056, 'b': 0.04, 'c': 0.1, 'gamma': 90, 'gray_level': 0.1},
+        {'x0': 0.0, 'y0': 0.1, 'z0': 0.625, 'a': 0.056, 'b': 0.056, 'c': 0.1, 'gamma': 0, 'gray_level': -0.2}
+    ]
 
     axis_x = np.linspace(-1.0, 1.0, num_cols)
     axis_y = np.linspace(1.0, -1.0, num_rows)
@@ -126,10 +91,10 @@ def gen_shepp_logan_3d_raw(num_rows, num_cols, num_slices, scale=1.0, offset_x=0
     return np.transpose(image, (2, 0, 1))
 
 
-def gen_shepp_logan_3d(num_rows, num_cols, num_slices, block_size=(2,2,2), scale=1.0, offset_x=0.0, offset_y=0.0, offset_z=0.0, modified=True):
+def gen_shepp_logan_3d(num_rows, num_cols, num_slices, block_size=(2,2,2), scale=1.0, offset_x=0.0, offset_y=0.0, offset_z=0.0):
     """
-    Generate a 3D Shepp Logan phantom.
-    
+    Generate a 3D Shepp Logan phantom with MODIFIED VALUES (good visibility)
+
     Args:
         num_rows: int, number of rows in generated phantom.
         num_cols: int, number of columns in generated phantom.
@@ -139,89 +104,32 @@ def gen_shepp_logan_3d(num_rows, num_cols, num_slices, block_size=(2,2,2), scale
         offset_x: proportion of x-axis offset
         offset_y: proportion of y-axis offset
         offset_z: proportion of z-axis offset
-        modified: bool, if True use modified (visible) values
-    
+
     Return:
         out_image: 3D array, num_slices*num_rows*num_cols
     """
     phantom_raw = gen_shepp_logan_3d_raw(num_rows*block_size[1], num_cols*block_size[2], num_slices*block_size[0],
-                                         scale=scale, offset_x=offset_x, offset_y=offset_y, offset_z=offset_z,
-                                         modified=modified)
+                                         scale=scale, offset_x=offset_x, offset_y=offset_y, offset_z=offset_z)
     phantom = phantom_raw.reshape(phantom_raw.shape[0]//block_size[0], block_size[0],
                                   phantom_raw.shape[1]//block_size[1], block_size[1],
                                   phantom_raw.shape[2]//block_size[2], block_size[2]).sum((1, 3, 5)) / (block_size[0]*block_size[1]*block_size[2])
     return phantom
 
 
-def gen_demo_shepp_logan(num_rows, num_cols, demo_type='high_contrast'):
+def nrmse(image, reference_image):
     """
-    Generate a demonstration Shepp-Logan phantom with highly visible features
-    
+    Compute the normalized root mean square error between image and reference_image.
+
     Args:
-        num_rows: int, number of rows
-        num_cols: int, number of cols
-        demo_type: str, 'high_contrast', 'binary', or 'gradient'
-    
-    Return:
-        out_image: 2D array
+        image: Calculated image
+        reference_image: Ground truth image
+
+    Returns:
+        Root mean square of (image - reference_image) divided by RMS of reference_image
+
     """
-    
-    if demo_type == 'high_contrast':
-        # High contrast demo - clearly visible features
-        sl_paras = [
-            {'x0': 0.0, 'y0': 0.0, 'a': 0.69, 'b': 0.92, 'theta': 0, 'gray_level': 1.0},
-            {'x0': 0.0, 'y0': -0.0184, 'a': 0.6624, 'b': 0.874, 'theta': 0, 'gray_level': 0.2},
-            {'x0': 0.22, 'y0': 0.0, 'a': 0.11, 'b': 0.31, 'theta': -18, 'gray_level': 0.8},
-            {'x0': -0.22, 'y0': 0.0, 'a': 0.16, 'b': 0.41, 'theta': 18, 'gray_level': 0.8},
-            {'x0': 0.0, 'y0': 0.35, 'a': 0.21, 'b': 0.25, 'theta': 0, 'gray_level': 0.6},
-            {'x0': 0.0, 'y0': 0.1, 'a': 0.046, 'b': 0.046, 'theta': 0, 'gray_level': 0.7},
-            {'x0': 0.0, 'y0': -0.1, 'a': 0.046, 'b': 0.046, 'theta': 0, 'gray_level': 0.7},
-            {'x0': -0.08, 'y0': -0.605, 'a': 0.046, 'b': 0.023, 'theta': 0, 'gray_level': 0.6},
-            {'x0': 0.0, 'y0': -0.605, 'a': 0.023, 'b': 0.023, 'theta': 0, 'gray_level': 0.6},
-            {'x0': 0.06, 'y0': -0.605, 'a': 0.023, 'b': 0.046, 'theta': 0, 'gray_level': 0.6}
-        ]
-    elif demo_type == 'binary':
-        # Binary demo - only 0 and 1 values
-        sl_paras = [
-            {'x0': 0.0, 'y0': 0.0, 'a': 0.69, 'b': 0.92, 'theta': 0, 'gray_level': 1.0},
-            {'x0': 0.0, 'y0': -0.0184, 'a': 0.6624, 'b': 0.874, 'theta': 0, 'gray_level': 0.0},
-            {'x0': 0.22, 'y0': 0.0, 'a': 0.11, 'b': 0.31, 'theta': -18, 'gray_level': 1.0},
-            {'x0': -0.22, 'y0': 0.0, 'a': 0.16, 'b': 0.41, 'theta': 18, 'gray_level': 1.0},
-            {'x0': 0.0, 'y0': 0.35, 'a': 0.21, 'b': 0.25, 'theta': 0, 'gray_level': 1.0},
-            {'x0': 0.0, 'y0': 0.1, 'a': 0.046, 'b': 0.046, 'theta': 0, 'gray_level': 1.0},
-            {'x0': 0.0, 'y0': -0.1, 'a': 0.046, 'b': 0.046, 'theta': 0, 'gray_level': 1.0},
-            {'x0': -0.08, 'y0': -0.605, 'a': 0.046, 'b': 0.023, 'theta': 0, 'gray_level': 1.0},
-            {'x0': 0.0, 'y0': -0.605, 'a': 0.023, 'b': 0.023, 'theta': 0, 'gray_level': 1.0},
-            {'x0': 0.06, 'y0': -0.605, 'a': 0.023, 'b': 0.046, 'theta': 0, 'gray_level': 1.0}
-        ]
-    else:  # gradient
-        # Gradient demo - different values for each feature
-        sl_paras = [
-            {'x0': 0.0, 'y0': 0.0, 'a': 0.69, 'b': 0.92, 'theta': 0, 'gray_level': 1.0},
-            {'x0': 0.0, 'y0': -0.0184, 'a': 0.6624, 'b': 0.874, 'theta': 0, 'gray_level': 0.3},
-            {'x0': 0.22, 'y0': 0.0, 'a': 0.11, 'b': 0.31, 'theta': -18, 'gray_level': 0.9},
-            {'x0': -0.22, 'y0': 0.0, 'a': 0.16, 'b': 0.41, 'theta': 18, 'gray_level': 0.9},
-            {'x0': 0.0, 'y0': 0.35, 'a': 0.21, 'b': 0.25, 'theta': 0, 'gray_level': 0.7},
-            {'x0': 0.0, 'y0': 0.1, 'a': 0.046, 'b': 0.046, 'theta': 0, 'gray_level': 0.6},
-            {'x0': 0.0, 'y0': -0.1, 'a': 0.046, 'b': 0.046, 'theta': 0, 'gray_level': 0.6},
-            {'x0': -0.08, 'y0': -0.605, 'a': 0.046, 'b': 0.023, 'theta': 0, 'gray_level': 0.5},
-            {'x0': 0.0, 'y0': -0.605, 'a': 0.023, 'b': 0.023, 'theta': 0, 'gray_level': 0.5},
-            {'x0': 0.06, 'y0': -0.605, 'a': 0.023, 'b': 0.046, 'theta': 0, 'gray_level': 0.5}
-        ]
+    rmse = np.sqrt(((image - reference_image) ** 2).mean())
+    denominator = np.sqrt(((reference_image) ** 2).mean())
 
-    axis_x = np.linspace(-1.0, 1.0, num_cols)
-    axis_y = np.linspace(1.0, -1.0, num_rows)
+    return rmse/denominator
 
-    x_grid, y_grid = np.meshgrid(axis_x, axis_y)
-    image = x_grid * 0.0
-
-    for el_paras in sl_paras:
-        image += _gen_ellipse(x_grid=x_grid, y_grid=y_grid, x0=el_paras['x0'], y0=el_paras['y0'],
-                             a=el_paras['a'], b=el_paras['b'], theta=el_paras['theta'] / 180.0 * np.pi,
-                             gray_level=el_paras['gray_level'])
-
-    return image
-
-
-
-    plt.show()
