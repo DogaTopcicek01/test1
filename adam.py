@@ -1,5 +1,6 @@
-so is this correct import torch
+import torch
 import torch.optim as optim
+from projection import cone_beam_projector
 
 def adam_reconstruction_autograd(sino, A, img_params, sino_params,
                                  num_iter=100, lr=0.01, device='cpu'):
