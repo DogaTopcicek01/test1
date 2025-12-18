@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -A YOUR_PROJECT_ACCOUNT         # ← Replace with your actual account
+#SBATCH -A csc662        # ← Replace with your actual account
 #SBATCH -J tomo_recon                   # Job name
 #SBATCH --nodes=1                       # 1 node
 #SBATCH --gres=gpu:1                    # ← ONLY 1 GPU (not 8!)
